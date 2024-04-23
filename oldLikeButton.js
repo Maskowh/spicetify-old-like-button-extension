@@ -118,7 +118,7 @@ initiateLikedSongs();
                 onMouseOver: handleMouseOver,
                 onMouseOut: handleMouseOut,
                 style: {
-                    marginRight: "8px",
+                    marginRight: "12px",
                     opacity: isLiked ? "1" : undefined
                 }
             },
@@ -176,6 +176,7 @@ initiateLikedSongs();
 
                     const likeButtonWrapper = document.createElement("div");
                     likeButtonWrapper.className = "likeControl-wrapper";
+                    likeButtonWrapper.style.display = "contents";
                     likeButtonWrapper.style.marginRight = 0;
 
                     // Add the new element before the "Add to Playlist" button
