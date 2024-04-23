@@ -179,7 +179,6 @@ initiateLikedSongs();
                     likeButtonWrapper.style.marginRight = 0;
 
                     // Add the new element before the "Add to Playlist" button
-                    // This semms incompatible with other extensions that insert elements the same way, like the Quick Queue extension. TODO: Try to solve this
                     const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
                     const tippy = Spicetify.Tippy(likeButtonElement, {
                         ...Spicetify.TippyProps,
