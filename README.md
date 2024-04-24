@@ -29,4 +29,4 @@ Hover over tracklist row and click add/remove from Liked Songs.
 
 ## Known Incompatibility
 
-Since I am pretty new to js, I made this extension basing myself on [Quick Queue Extension](https://github.com/ohitstom/spicetify-extensions/blob/main/quickQueue/README.md), espicially for the rendering. Since both extensions try to add their button the same place, they are currently incompatible.
+Since I am pretty new to js, I made this extension basing myself on [Quick Queue Extension](https://github.com/ohitstom/spicetify-extensions/blob/main/quickQueue/README.md), espicially for the rendering.

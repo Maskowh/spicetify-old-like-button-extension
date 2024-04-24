@@ -60,21 +60,34 @@ initiateLikedSongs();
         return;
     }
 
-    const LikeButton = Spicetify.React.memo(function LikeButton({ uri, tippy, classList }) {
+    const LikeButton = Spicetify.React.memo(function LikeButton({ uri, classList }) {
 
         const [isLiked, setIsLiked] = Spicetify.React.useState(likedTrackURIs.includes(uri));
         const [isHovered, setIsHovered] = Spicetify.React.useState(false);
+        const buttonRef = Spicetify.React.useRef(null);
 
+        // Initialize tippy
+	Spicetify.React.useEffect(() => {
+		if (buttonRef.current) {
+			const tippyInstance = Spicetify.Tippy(buttonRef.current, {
+				...Spicetify.TippyProps,
+				hideOnClick: true,
+				content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" 
+			});
+
+			return () => {
+				tippyInstance.destroy();
+			};
+		}
+	}, [isLiked]);
+        
         // When the Liked Tracks list notify of a change, we set the new value
         document.addEventListener('arrayChange', function (event) {
             setIsLiked(likedTrackURIs.includes(uri));
         });
 
-        tippy.setProps({ content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" });
-
         const handleClick = async function () {
             Spicetify.showNotification(isLiked ? "Removed from Liked Songs" : "Added to Liked Songs");
-            tippy.setProps({ content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" });
             if (isLiked) {
                 try {
                     await Spicetify.CosmosAsync.del(`https://api.spotify.com/v1/me/tracks?ids=${uri.replace("spotify:track:", "")}`);
@@ -112,13 +125,14 @@ initiateLikedSongs();
         return Spicetify.React.createElement(
             "button",
             {
+                ref: buttonRef,
                 className: classList,
                 "aria-checked": isLiked,
                 onClick: handleClick,
                 onMouseOver: handleMouseOver,
                 onMouseOut: handleMouseOut,
                 style: {
-                    marginRight: "8px",
+                    marginRight: "12px",
                     opacity: isLiked ? "1" : undefined
                 }
             },
@@ -166,7 +180,7 @@ initiateLikedSongs();
             const node = mutation.addedNodes[0];
             if (node?.attributes?.role?.value === "row") {
                 const lastRowSection = node.firstChild.lastChild; // last column of the tracklist
-                const entryPoint = lastRowSection.firstChild; // first element of that last column, should be the "Add to Playlist" button
+                const entryPoint = lastRowSection.querySelector(":scope > button:not(:last-child)"); // first element of that last column, should be the "Add to Playlist" button
                 if (
                     entryPoint &&
                     (entryPoint.classList.contains("main-trackList-rowHeartButton") || entryPoint.classList.contains("main-trackList-curationButton"))
@@ -176,19 +190,14 @@ initiateLikedSongs();
 
                     const likeButtonWrapper = document.createElement("div");
                     likeButtonWrapper.className = "likeControl-wrapper";
+                    likeButtonWrapper.style.display = "contents";
                     likeButtonWrapper.style.marginRight = 0;
 
                     // Add the new element before the "Add to Playlist" button
-                    // This semms incompatible with other extensions that insert elements the same way, like the Quick Queue extension. TODO: Try to solve this
                     const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
-                    const tippy = Spicetify.Tippy(likeButtonElement, {
-                        ...Spicetify.TippyProps,
-                        hideOnClick: true
-                    });
                     Spicetify.ReactDOM.render(
                         Spicetify.React.createElement(LikeButton, {
                             uri,
-                            tippy,
                             classList: entryPoint.classList
                         }),
                         likeButtonElement
