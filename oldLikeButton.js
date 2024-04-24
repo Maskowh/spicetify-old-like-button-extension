@@ -67,19 +67,19 @@ initiateLikedSongs();
         const buttonRef = Spicetify.React.useRef(null);
 
         // Initialize tippy
-		Spicetify.React.useEffect(() => {
-			if (buttonRef.current) {
-				const tippyInstance = Spicetify.Tippy(buttonRef.current, {
-					...Spicetify.TippyProps,
-					hideOnClick: true,
-					content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" 
-				});
+	Spicetify.React.useEffect(() => {
+		if (buttonRef.current) {
+			const tippyInstance = Spicetify.Tippy(buttonRef.current, {
+				...Spicetify.TippyProps,
+				hideOnClick: true,
+				content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" 
+			});
 
-				return () => {
-					tippyInstance.destroy();
-				};
-			}
-		}, [isLiked]);
+			return () => {
+				tippyInstance.destroy();
+			};
+		}
+	}, [isLiked]);
         
         // When the Liked Tracks list notify of a change, we set the new value
         document.addEventListener('arrayChange', function (event) {
