@@ -1,3 +1,5 @@
+If you like this extension, please star the repository. It helps the extension's visibility in the marketplace and helps me measure how many people are using it.
+
 # Old Like Button Extension
 
 ![Example](example.png)
@@ -7,8 +9,9 @@ I know that you can natively bring back the old Like button by disabling the Exp
 
 ## Disclaimer
 I'm pretty new to Spicetify but also to JS, so there might be some bugs / optimisable code. Please let me know!
+I made this extension basing myself on [Quick Queue Extension](https://github.com/ohitstom/spicetify-extensions/blob/main/quickQueue/README.md), espicially for the rendering. Thanks to [ohitstom](https://github.com/ohitstom) for making those two extensions compatible.
 
-## Insatallation
+## Installation
 
 ### Manual Installation
 
@@ -26,7 +29,3 @@ I'm pretty new to Spicetify but also to JS, so there might be some bugs / optimi
 ## Usage
 
 Hover over tracklist row and click add/remove from Liked Songs.
-
-## Known Incompatibility
-
-Since I am pretty new to js, I made this extension basing myself on [Quick Queue Extension](https://github.com/ohitstom/spicetify-extensions/blob/main/quickQueue/README.md), espicially for the rendering.
