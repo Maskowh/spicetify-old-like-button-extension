@@ -60,21 +60,34 @@ initiateLikedSongs();
         return;
     }
 
-    const LikeButton = Spicetify.React.memo(function LikeButton({ uri, tippy, classList }) {
+    const LikeButton = Spicetify.React.memo(function LikeButton({ uri, classList }) {
 
         const [isLiked, setIsLiked] = Spicetify.React.useState(likedTrackURIs.includes(uri));
         const [isHovered, setIsHovered] = Spicetify.React.useState(false);
+        const buttonRef = Spicetify.React.useRef(null);
 
+        // Initialize tippy
+		Spicetify.React.useEffect(() => {
+			if (buttonRef.current) {
+				const tippyInstance = Spicetify.Tippy(buttonRef.current, {
+					...Spicetify.TippyProps,
+					hideOnClick: true,
+					content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" 
+				});
+
+				return () => {
+					tippyInstance.destroy();
+				};
+			}
+		}, [isLiked]);
+        
         // When the Liked Tracks list notify of a change, we set the new value
         document.addEventListener('arrayChange', function (event) {
             setIsLiked(likedTrackURIs.includes(uri));
         });
 
-        tippy.setProps({ content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" });
-
         const handleClick = async function () {
             Spicetify.showNotification(isLiked ? "Removed from Liked Songs" : "Added to Liked Songs");
-            tippy.setProps({ content: isLiked ? "Remove from Liked Songs" : "Add to Liked Songs" });
             if (isLiked) {
                 try {
                     await Spicetify.CosmosAsync.del(`https://api.spotify.com/v1/me/tracks?ids=${uri.replace("spotify:track:", "")}`);
@@ -112,6 +125,7 @@ initiateLikedSongs();
         return Spicetify.React.createElement(
             "button",
             {
+                ref: buttonRef,
                 className: classList,
                 "aria-checked": isLiked,
                 onClick: handleClick,
@@ -181,14 +195,9 @@ initiateLikedSongs();
 
                     // Add the new element before the "Add to Playlist" button
                     const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
-                    const tippy = Spicetify.Tippy(likeButtonElement, {
-                        ...Spicetify.TippyProps,
-                        hideOnClick: true
-                    });
                     Spicetify.ReactDOM.render(
                         Spicetify.React.createElement(LikeButton, {
                             uri,
-                            tippy,
                             classList: entryPoint.classList
                         }),
                         likeButtonElement
