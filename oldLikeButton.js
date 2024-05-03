@@ -180,11 +180,8 @@ initiateLikedSongs();
             const node = mutation.addedNodes[0];
             if (node?.attributes?.role?.value === "row") {
                 const lastRowSection = node.firstChild.lastChild; // last column of the tracklist
-                const entryPoint = lastRowSection.querySelector(":scope > button:not(:last-child)"); // first element of that last column, should be the "Add to Playlist" button
-                if (
-                    entryPoint &&
-                    (entryPoint.classList.contains("main-trackList-rowHeartButton") || entryPoint.classList.contains("main-trackList-curationButton"))
-                ) {
+		const entryPoint = lastRowSection.querySelector(":scope > button:not(:last-child):has([data-encore-id])"); // first element of that last column, should be the "Add to Playlist" button
+		if (entryPoint) {
                     const reactProps = Object.keys(node).find(k => k.startsWith("__reactProps$"));
                     const uri = findVal(node[reactProps], "uri");
 
