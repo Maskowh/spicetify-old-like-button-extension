@@ -3,9 +3,9 @@ If you like this extension, please star the repository. It helps the extension's
 # Old Like Button Extension
 
 ![Example](example.png)
-_This script adds the old like button next to the new "Add to Playlist" on tracklist rows_
+_This script adds the old like button next to the new "Add to Playlist" on tracklist rows. It also shows with a half-heart if you like another version of the same track_
 
-I know that you can natively bring back the old Like button by disabling the Experimental Feature "Enable Aligned Curation", but I made this extension to have both buttons: the "Add to Liked Songs" one and the "Add to Playlist" one.
+I know that you can natively bring back the old like button by disabling the Experimental Feature "Enable Aligned Curation", but I made this extension to have both buttons: the "Add to Liked Songs" one and the "Add to Playlist" one.
 
 ## Disclaimer
 I'm pretty new to Spicetify but also to JS, so there might be some bugs / optimisable code. Please let me know!
@@ -27,5 +27,8 @@ I made this extension basing myself on [Quick Queue Extension](https://github.co
 3. Restart your client if needed.
 
 ## Usage
+Full heart means that you already like this track.
+Half-heart means that you like another version of the same track.
+No heart means that you don't like any song that has the same ISRC.
 
 Hover over tracklist row and click add/remove from Liked Songs.
