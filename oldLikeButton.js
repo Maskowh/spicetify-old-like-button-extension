@@ -4,13 +4,13 @@
 // Heavily inspired of https://github.com/ohitstom/spicetify-extensions/tree/main/quickQueue, especially for rendering
 
 
-let likedTracks = new Map(); // map id -> isrc for liked songs
-let knownISRCs = new Map(); // map id -> isrc for other songs to avoid multiple api calls
+let likedTracksIdsISRCs = new Map(); // ids/isrcs of all liked tracks, to check if we should display the heart icon or not. 
+let likedTracksISRCs = new Set(likedTracksIdsISRCs.values()); // isrcs of all liked tracks, to check if we should display the half-heart icon or not
+let knownISRCs = new Map(); // map id -> isrc for all the tracks fetch during the current session
 
-let likedTracksISRCs = new Set(likedTracks.values()); // isrcs
-var proxyMap;
+var proxyLikedTracksIdsISRCs; // proxy for likedTracksIds, to trigger an event on add/delete
 
-var arrayChangeEvent = new CustomEvent('arrayChange');
+var likedTracksChangeEvent = new CustomEvent('likedTracksChange');
 
 async function initiateLikedSongs() {
     if (
@@ -23,16 +23,28 @@ async function initiateLikedSongs() {
     }
     let likedTracksItems = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
     let likedTracksIds = likedTracksItems.item.map(item => item.trackMetadata.link.replace("spotify:track:", ""));
-    let newlikedTracks = new Map();
+
+    let newLikedTracksIdsISRCs = new Map();
+    let likedTracksIdsWithUnknownISRCs = [];
+
+    likedTracksIds.forEach(trackId => {
+        if (knownISRCs.has(trackId)) {
+            newLikedTracksIdsISRCs.set(trackId, knownISRCs.get(trackId))
+        } else if (!trackId.startsWith("spotify:local:")) {
+            likedTracksIdsWithUnknownISRCs.push(trackId);
+        }
+    });
 
     let promises = [];
 
-    for (let i = 0; i < likedTracksIds.length; i += 50) {
-        let batch = likedTracksIds.slice(i, i + 50);
+    for (let i = 0; i < likedTracksIdsWithUnknownISRCs.length; i += 50) {
+        let batch = likedTracksIdsWithUnknownISRCs.slice(i, i + 50);
+        console.info("Requesting ISRCs for the following liked tracks (normal at startup, should not happen after): " + batch);
         promises.push(
             Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${batch.join(",")}`).then(response => {
                 response.tracks.forEach(track => {
-                    newlikedTracks.set(track.id, track.external_ids.isrc);
+                    newLikedTracksIdsISRCs.set(track.id, track.external_ids.isrc);
+                    knownISRCs.set(track.id, track.external_ids.isrc);
                 });
             })
         );
@@ -40,10 +52,10 @@ async function initiateLikedSongs() {
 
     await Promise.all(promises);
 
-    likedTracks = newlikedTracks;
-    likedTracksISRCs = new Set(likedTracks.values());
+    likedTracksIdsISRCs = newLikedTracksIdsISRCs;
+    likedTracksISRCs = new Set(likedTracksIdsISRCs.values());
 
-    proxyMap = new Proxy(likedTracks, {
+    proxyLikedTracksIdsISRCs = new Proxy(likedTracksIdsISRCs, {
         get: function (target, property, receiver) {
             // If the accessed property is a function and it's one of the methods I want to trigger an event for
             if (['set', 'delete'].includes(property) && typeof target[property] === 'function') {
@@ -51,8 +63,8 @@ async function initiateLikedSongs() {
                     // Original method call
                     const result = target[property].apply(target, args);
                     // Trigger the event to notify the buttons
-                    likedTracksISRCs = new Set(likedTracks.values());
-                    document.dispatchEvent(arrayChangeEvent);
+                    likedTracksISRCs = new Set(likedTracksIdsISRCs.values());
+                    document.dispatchEvent(likedTracksChangeEvent);
                     return result;
                 };
             }
@@ -62,7 +74,7 @@ async function initiateLikedSongs() {
     });
 
     // This is to initiate the buttons, then to refresh it every 30 seconds to handle new/removed likes from other sources (mobile, web browser)
-    document.dispatchEvent(arrayChangeEvent);
+    document.dispatchEvent(likedTracksChangeEvent);
     setTimeout(initiateLikedSongs, 30000);
 }
 
@@ -88,9 +100,8 @@ initiateLikedSongs();
     const LikeButton = Spicetify.React.memo(function LikeButton({ uri, classList }) {
 
         const trackId = uri.replace("spotify:track:", "");
-
-        const [isrc, setISRC] = Spicetify.React.useState(likedTracks.has(trackId) ? likedTracks.get(trackId) : (knownISRCs.has(trackId) ? knownISRCs.get(trackId) : ""));
-        const [isLiked, setIsLiked] = Spicetify.React.useState(likedTracks.has(trackId));
+        const [isrc, setISRC] = Spicetify.React.useState(knownISRCs.has(trackId) ? knownISRCs.get(trackId) : "");
+        const [isLiked, setIsLiked] = Spicetify.React.useState(likedTracksIdsISRCs.has(trackId));
         const [hasISRCLiked, setHasISRCLiked] = Spicetify.React.useState(likedTracksISRCs.has(isrc));
         const [isHovered, setIsHovered] = Spicetify.React.useState(false);
         const buttonRef = Spicetify.React.useRef(null);
@@ -113,8 +124,8 @@ initiateLikedSongs();
         Spicetify.React.useEffect(() => {
             async function initISRC() {
                 try {
-                    // If the ISRC is not in likedTracks or knownISRCs, and if it is not a local track, request the track to spotify api to get the isrc
-                    if (isrc === "" && uri.startsWith("spotify:track:")) {
+                    // If the ISRC is not in knownISRCs, request the track to spotify api to get the isrc
+                    if (isrc === "") {
                         let track = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
                         setISRC(track.external_ids.isrc);
                         knownISRCs.set(trackId, track.external_ids.isrc);
@@ -130,9 +141,9 @@ initiateLikedSongs();
             initISRC();
         }, [isLiked, hasISRCLiked]);
 
-        // When the Liked Tracks list notify of a change, we set the new value
-        document.addEventListener('arrayChange', function (event) {
-            setIsLiked(likedTracks.has(trackId));
+        // When the Liked Tracks list notify of a change, we set the new values
+        document.addEventListener('likedTracksChange', function (event) {
+            setIsLiked(likedTracksIdsISRCs.has(trackId));
             setHasISRCLiked(likedTracksISRCs.has(isrc));
         });
 
@@ -148,7 +159,7 @@ initiateLikedSongs();
                         console.error(error);
                     }
                 }
-                proxyMap.delete(trackId);
+                proxyLikedTracksIdsISRCs.delete(trackId);
             } else {
                 try {
                     await Spicetify.CosmosAsync.put(`https://api.spotify.com/v1/me/tracks?ids=${trackId}`);
@@ -159,8 +170,11 @@ initiateLikedSongs();
                         console.error(error);
                     }
                 }
-                let track = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
-                proxyMap.set(trackId, track.external_ids.isrc);
+                if (isrc === "") {
+                    console.error("Track without isrc set. Shouldn't happen")
+                } else {
+                    proxyLikedTracksIdsISRCs.set(trackId, isrc);
+                }
             }
         };
 
@@ -247,16 +261,17 @@ initiateLikedSongs();
                     likeButtonWrapper.style.display = "contents";
                     likeButtonWrapper.style.marginRight = 0;
 
-                    // Add the new element before the "Add to Playlist" button
-                    const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
-                    Spicetify.ReactDOM.render(
-                        Spicetify.React.createElement(LikeButton, {
-                            uri,
-                            classList: entryPoint.classList
-                        }),
-                        likeButtonElement
-                    );
-
+                    if (!uri.startsWith("spotify:local:")) {
+                        // Add the new element before the "Add to Playlist" button if its not a local track
+                        const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
+                        Spicetify.ReactDOM.render(
+                            Spicetify.React.createElement(LikeButton, {
+                                uri,
+                                classList: entryPoint.classList
+                            }),
+                            likeButtonElement
+                        );
+                    }
                 }
             }
         });

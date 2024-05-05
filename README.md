@@ -28,7 +28,10 @@ I made this extension basing myself on [Quick Queue Extension](https://github.co
 
 ## Usage
 Full heart means that you already like this track.
-Half-heart means that you like another version of the same track.
+Half-heart means that you like another version of the same track (same ISRC).
 No heart means that you don't like any song that has the same ISRC.
 
 Hover over tracklist row and click add/remove from Liked Songs.
+
+## Improvement planned
+- Handle local tracks (currently the button is disabled for local tracks)
