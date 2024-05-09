@@ -6,7 +6,6 @@
 
 let likedTracksIdsISRCs = new Map(); // ids/isrcs of all liked tracks, to check if we should display the heart icon or not. 
 let likedTracksISRCs = new Set(likedTracksIdsISRCs.values()); // isrcs of all liked tracks, to check if we should display the half-heart icon or not
-let knownISRCs = new Map(); // map id -> isrc for all the tracks fetch during the current session
 
 var proxyLikedTracksIdsISRCs; // proxy for likedTracksIds, to trigger an event on add/delete
 
@@ -28,8 +27,9 @@ async function initiateLikedSongs() {
     let likedTracksIdsWithUnknownISRCs = [];
 
     likedTracksIds.forEach(trackId => {
-        if (knownISRCs.has(trackId)) {
-            newLikedTracksIdsISRCs.set(trackId, knownISRCs.get(trackId))
+        const trackIsrc = localStorage.getItem("maskowh-oldlike-" + trackId)
+        if (trackIsrc != null) {
+            newLikedTracksIdsISRCs.set(trackId, trackIsrc)
         } else if (!trackId.startsWith("spotify:local:")) {
             likedTracksIdsWithUnknownISRCs.push(trackId);
         }
@@ -39,12 +39,12 @@ async function initiateLikedSongs() {
 
     for (let i = 0; i < likedTracksIdsWithUnknownISRCs.length; i += 50) {
         let batch = likedTracksIdsWithUnknownISRCs.slice(i, i + 50);
-        console.info("Requesting ISRCs for the following liked tracks (normal at startup, should not happen after): " + batch);
+        console.info("Requesting ISRCs for the following liked tracks: " + batch);
         promises.push(
             Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks?ids=${batch.join(",")}`).then(response => {
                 response.tracks.forEach(track => {
                     newLikedTracksIdsISRCs.set(track.id, track.external_ids.isrc);
-                    knownISRCs.set(track.id, track.external_ids.isrc);
+                    localStorage.setItem("maskowh-oldlike-" + track.id, track.external_ids.isrc);
                 });
             })
         );
@@ -100,7 +100,7 @@ initiateLikedSongs();
     const LikeButton = Spicetify.React.memo(function LikeButton({ uri, classList }) {
 
         const trackId = uri.replace("spotify:track:", "");
-        const [isrc, setISRC] = Spicetify.React.useState(knownISRCs.has(trackId) ? knownISRCs.get(trackId) : "");
+        const [isrc, setISRC] = Spicetify.React.useState(localStorage.getItem("maskowh-oldlike-" + trackId));
         const [isLiked, setIsLiked] = Spicetify.React.useState(likedTracksIdsISRCs.has(trackId));
         const [hasISRCLiked, setHasISRCLiked] = Spicetify.React.useState(likedTracksISRCs.has(isrc));
         const [isHovered, setIsHovered] = Spicetify.React.useState(false);
@@ -124,11 +124,12 @@ initiateLikedSongs();
         Spicetify.React.useEffect(() => {
             async function initISRC() {
                 try {
-                    // If the ISRC is not in knownISRCs, request the track to spotify api to get the isrc
-                    if (isrc === "") {
+                    // If the ISRC is not in known ISRCs, request the track to spotify api to get the isrc and store it in local storage
+                    if (isrc == null) {
+                        console.log("Requesting the isrc for " + trackId)
                         let track = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${trackId}`);
                         setISRC(track.external_ids.isrc);
-                        knownISRCs.set(trackId, track.external_ids.isrc);
+                        localStorage.setItem("maskowh-oldlike-" + track.id, track.external_ids.isrc);
                         setHasISRCLiked(likedTracksISRCs.has(track.external_ids.isrc));
                     } else {
                         setHasISRCLiked(likedTracksISRCs.has(isrc));
