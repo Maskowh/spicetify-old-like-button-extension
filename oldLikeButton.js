@@ -212,7 +212,7 @@ initiateLikedSongs();
                     viewBox: "0 0 24 24",
                     className: (isLiked || hasISRCLiked) ? "Svg-img-icon-small-textBrightAccent" : "Svg-img-icon-small",
                     style: {
-                        fill: (isLiked || hasISRCLiked) ? undefined : "var(--text-subdued)"
+                        fill: (isLiked || hasISRCLiked) ? "var(--text-bright-accent)" : "var(--text-subdued)"
                     },
                     dangerouslySetInnerHTML: {
                         __html: isLiked
@@ -247,24 +247,29 @@ initiateLikedSongs();
         return undefined;
     }
 
-    const observer = new MutationObserver(function (mutationList) {
+    const observer = new MutationObserver(mutationList => {
         mutationList.forEach(mutation => {
-            const node = mutation.addedNodes[0];
-            if (node?.attributes?.role?.value === "row") {
-                const lastRowSection = node.firstChild.lastChild; // last column of the tracklist
-                const entryPoint = lastRowSection.querySelector(":scope > button:not(:last-child):has([data-encore-id])"); // first element of that last column, should be the "Add to Playlist" button
-                if (entryPoint) {
-                    const reactProps = Object.keys(node).find(k => k.startsWith("__reactProps$"));
-                    const uri = findVal(node[reactProps], "uri");
+            mutation.addedNodes.forEach(node => {
+                const nodeMatch =
+                    node.attributes?.role?.value === "row"
+                        ? node.firstChild?.lastChild
+                        : node.firstChild?.attributes?.role?.value === "row"
+                            ? node.firstChild?.firstChild.lastChild
+                            : null;
 
-                    const likeButtonWrapper = document.createElement("div");
-                    likeButtonWrapper.className = "likeControl-wrapper";
-                    likeButtonWrapper.style.display = "contents";
-                    likeButtonWrapper.style.marginRight = 0;
+                if (nodeMatch) {
+                    const entryPoint = nodeMatch.querySelector(":scope > button:not(:last-child):has([data-encore-id])");
 
-                    if (!uri.startsWith("spotify:local:")) {
-                        // Add the new element before the "Add to Playlist" button if its not a local track
-                        const likeButtonElement = lastRowSection.insertBefore(likeButtonWrapper, entryPoint);
+                    if (entryPoint) {
+                        const reactPropsKey = Object.keys(node).find(key => key.startsWith("__reactProps$"));
+                        const uri = findVal(node[reactPropsKey], "uri");
+
+                        const likeButtonWrapper = document.createElement("div");
+                        likeButtonWrapper.className = "likeControl-wrapper";
+                        likeButtonWrapper.style.display = "contents";
+                        likeButtonWrapper.style.marginRight = 0;
+
+                        const likeButtonElement = nodeMatch.insertBefore(likeButtonWrapper, entryPoint);
                         Spicetify.ReactDOM.render(
                             Spicetify.React.createElement(LikeButton, {
                                 uri,
@@ -274,7 +279,7 @@ initiateLikedSongs();
                         );
                     }
                 }
-            }
+            });
         });
     });
 
