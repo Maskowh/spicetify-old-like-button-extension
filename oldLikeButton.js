@@ -230,6 +230,46 @@ initiateLikedSongs();
         );
     });
 
+
+	// Paybar button insertion
+	function waitForWidgetMounted() {
+		nowPlayingWidget = document.querySelector(".main-nowPlayingWidget-nowPlaying");
+		entryPoint = document.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child");
+		if (!(nowPlayingWidget && entryPoint)) {
+			setTimeout(waitForWidgetMounted, 300);
+			return;
+		}
+
+		const buttonContainer = document.createElement("div");
+		buttonContainer.className = "oldLikeButton-container";
+
+		const buttonElement = nowPlayingWidget.insertBefore(buttonContainer, entryPoint);
+		Spicetify.ReactDOM.render(Spicetify.React.createElement(LikeButton), buttonElement);
+	}
+
+	(function attachObserver() {
+		const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
+		if (!leftPlayer) {
+			setTimeout(attachObserver, 300);
+			return;
+		}
+		waitForWidgetMounted();
+		const observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+				if (mutation.removedNodes.length > 0) {
+					const removedNodes = Array.from(mutation.removedNodes);
+					const isNowPlayingRemoved = removedNodes.some(node => node.classList && node.classList.contains("main-nowPlayingWidget-nowPlaying"));
+					if (isNowPlayingRemoved) {
+						waitForWidgetMounted();
+					}
+				}
+			});
+		});
+		observer.observe(leftPlayer, { childList: true });
+	})();
+
+
+    // Main view button insertion
     function findVal(object, key, max = 10) {
         if (object[key] !== undefined || !max) {
             return object[key];
