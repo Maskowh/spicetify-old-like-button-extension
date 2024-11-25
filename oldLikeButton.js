@@ -90,7 +90,9 @@ initiateLikedSongs();
             Spicetify.Platform.PlayerAPI &&
             Spicetify.Tippy &&
             Spicetify.TippyProps &&
-            Spicetify.CosmosAsync
+            Spicetify.CosmosAsync &&
+            Spicetify.Player &&
+            Spicetify.Player.data
         )
     ) {
         setTimeout(quickLike, 10);
@@ -240,14 +242,14 @@ initiateLikedSongs();
 			return;
 		}
 
-		const buttonContainer = document.createElement("div");
-		buttonContainer.className = "oldLikeButton-container";
+        const likeButtonWrapper = document.createElement("div");
+        likeButtonWrapper.className = "likeControl-wrapper";
 
-		const buttonElement = nowPlayingWidget.insertBefore(buttonContainer, entryPoint);
-		Spicetify.ReactDOM.render(Spicetify.React.createElement(LikeButton), buttonElement);
-	}
+        const likeButtonElement = nowPlayingWidget.insertBefore(likeButtonWrapper, entryPoint);
+        renderLikeButton(likeButtonElement);
+    }
 
-	(function attachObserver() {
+    (function attachObserver() {
 		const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
 		if (!leftPlayer) {
 			setTimeout(attachObserver, 300);
@@ -267,6 +269,26 @@ initiateLikedSongs();
 		});
 		observer.observe(leftPlayer, { childList: true });
 	})();
+
+    function renderLikeButton(container) {
+        const uri = Spicetify.Player.data?.item?.uri || "";
+        Spicetify.ReactDOM.render(
+            Spicetify.React.createElement(LikeButton, {
+                uri: uri,
+                key: uri,
+                classList: container.parentElement.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child").classList
+            }),
+            container
+        );
+        container.firstChild.style.marginRight = "0px";
+    }
+    
+    Spicetify.Player.addEventListener("songchange", () => {
+        const container = document.querySelector(".likeControl-wrapper");
+        if (container) {
+            renderLikeButton(container); // Re-render on song change
+        }
+    });
 
 
     // Main view button insertion
