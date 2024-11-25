@@ -1,5 +1,5 @@
 // NAME: Old Like Button
-// AUTHOR: Maskowh
+// AUTHOR: Maskowh, OhItsTom
 // DESCRIPTION: Adds a button to the tracklist to add/remove a song from Liked Songs.
 // Heavily inspired of https://github.com/ohitstom/spicetify-extensions/tree/main/quickQueue, especially for rendering
 
