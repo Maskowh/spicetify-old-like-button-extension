@@ -1,5 +1,5 @@
 // NAME: Old Like Button
-// AUTHOR: Maskowh
+// AUTHOR: Maskowh, OhItsTom
 // DESCRIPTION: Adds a button to the tracklist to add/remove a song from Liked Songs.
 // Heavily inspired of https://github.com/ohitstom/spicetify-extensions/tree/main/quickQueue, especially for rendering
 
@@ -90,7 +90,9 @@ initiateLikedSongs();
             Spicetify.Platform.PlayerAPI &&
             Spicetify.Tippy &&
             Spicetify.TippyProps &&
-            Spicetify.CosmosAsync
+            Spicetify.CosmosAsync &&
+            Spicetify.Player &&
+            Spicetify.Player.data
         )
     ) {
         setTimeout(quickLike, 10);
@@ -230,6 +232,66 @@ initiateLikedSongs();
         );
     });
 
+
+	// Paybar button insertion
+	function waitForWidgetMounted() {
+		nowPlayingWidget = document.querySelector(".main-nowPlayingWidget-nowPlaying");
+		entryPoint = document.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child");
+		if (!(nowPlayingWidget && entryPoint)) {
+			setTimeout(waitForWidgetMounted, 300);
+			return;
+		}
+
+        const likeButtonWrapper = document.createElement("div");
+        likeButtonWrapper.className = "likeControl-wrapper";
+
+        const likeButtonElement = nowPlayingWidget.insertBefore(likeButtonWrapper, entryPoint);
+        renderLikeButton(likeButtonElement);
+    }
+
+    (function attachObserver() {
+		const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
+		if (!leftPlayer) {
+			setTimeout(attachObserver, 300);
+			return;
+		}
+		waitForWidgetMounted();
+		const observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+				if (mutation.removedNodes.length > 0) {
+					const removedNodes = Array.from(mutation.removedNodes);
+					const isNowPlayingRemoved = removedNodes.some(node => node.classList && node.classList.contains("main-nowPlayingWidget-nowPlaying"));
+					if (isNowPlayingRemoved) {
+						waitForWidgetMounted();
+					}
+				}
+			});
+		});
+		observer.observe(leftPlayer, { childList: true });
+	})();
+
+    function renderLikeButton(container) {
+        const uri = Spicetify.Player.data?.item?.uri || "";
+        Spicetify.ReactDOM.render(
+            Spicetify.React.createElement(LikeButton, {
+                uri: uri,
+                key: uri,
+                classList: container.parentElement.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child").classList
+            }),
+            container
+        );
+        container.firstChild.style.marginRight = "0px";
+    }
+    
+    Spicetify.Player.addEventListener("songchange", () => {
+        const container = document.querySelector(".likeControl-wrapper");
+        if (container) {
+            renderLikeButton(container); // Re-render on song change
+        }
+    });
+
+
+    // Main view button insertion
     function findVal(object, key, max = 10) {
         if (object[key] !== undefined || !max) {
             return object[key];
