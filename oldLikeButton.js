@@ -209,8 +209,8 @@ initiateLikedSongs();
                 { className: "Wrapper-sm-only Wrapper-small-only" },
                 Spicetify.React.createElement("svg", {
                     role: "img",
-                    height: "24",
-                    width: "24",
+                    height: "16",
+                    width: "16",
                     viewBox: "0 0 24 24",
                     className: (isLiked || hasISRCLiked) ? "Svg-img-icon-small-textBrightAccent" : "Svg-img-icon-small",
                     style: {
