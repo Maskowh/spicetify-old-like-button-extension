@@ -233,56 +233,69 @@ initiateLikedSongs();
     });
 
 
-	// Paybar button insertion
-	function waitForWidgetMounted() {
-		nowPlayingWidget = document.querySelector(".main-nowPlayingWidget-nowPlaying");
-		entryPoint = document.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child");
-		if (!(nowPlayingWidget && entryPoint)) {
-			setTimeout(waitForWidgetMounted, 300);
-			return;
-		}
+    // Paybar button insertion
+    function waitForWidgetMounted() {
+        nowPlayingWidget = document.querySelector(".main-nowPlayingWidget-nowPlaying");
+        entryPoint = document.querySelector(".main-nowPlayingWidget-nowPlaying [data-encore-id='buttonTertiary']");
+        if (!(nowPlayingWidget && entryPoint)) {
+            setTimeout(waitForWidgetMounted, 300);
+            return;
+        }
 
         const likeButtonWrapper = document.createElement("div");
         likeButtonWrapper.className = "likeControl-wrapper";
 
-        const likeButtonElement = nowPlayingWidget.insertBefore(likeButtonWrapper, entryPoint);
-        renderLikeButton(likeButtonElement);
+        renderLikeButton(likeButtonWrapper);
     }
 
     (function attachObserver() {
-		const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
-		if (!leftPlayer) {
-			setTimeout(attachObserver, 300);
-			return;
-		}
-		waitForWidgetMounted();
-		const observer = new MutationObserver(mutations => {
-			mutations.forEach(mutation => {
-				if (mutation.removedNodes.length > 0) {
-					const removedNodes = Array.from(mutation.removedNodes);
-					const isNowPlayingRemoved = removedNodes.some(node => node.classList && node.classList.contains("main-nowPlayingWidget-nowPlaying"));
-					if (isNowPlayingRemoved) {
-						waitForWidgetMounted();
-					}
-				}
-			});
-		});
-		observer.observe(leftPlayer, { childList: true });
-	})();
+        const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
+        if (!leftPlayer) {
+            setTimeout(attachObserver, 300);
+            return;
+        }
+        waitForWidgetMounted();
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.removedNodes.length > 0) {
+                    const removedNodes = Array.from(mutation.removedNodes);
+                    const isNowPlayingRemoved = removedNodes.some(node => node.classList && node.classList.contains("main-nowPlayingWidget-nowPlaying"));
+                    if (isNowPlayingRemoved) {
+                        waitForWidgetMounted();
+                    }
+                }
+            });
+        });
+        observer.observe(leftPlayer, { childList: true });
+    })();
 
     function renderLikeButton(container) {
         const uri = Spicetify.Player.data?.item?.uri || "";
+        const entryPoint = document.querySelector(".main-nowPlayingWidget-nowPlaying [data-encore-id='buttonTertiary']");
+
+        try {
+            // Standard case
+            entryPoint.parentNode.parentNode.insertBefore(container, entryPoint.nextSibling);
+        } catch (error) {
+            try {
+                // Smart shuffle case
+                entryPoint.parentNode.parentNode.parentNode.insertBefore(container, entryPoint.nextSibling);
+            } catch (altError) {
+                console.error("Failed to insert like button", error, altError);
+                return;
+            }
+        }
         Spicetify.ReactDOM.render(
             Spicetify.React.createElement(LikeButton, {
                 uri: uri,
                 key: uri,
-                classList: container.parentElement.querySelector(".main-nowPlayingWidget-nowPlaying > button:last-child").classList
+                classList: entryPoint.classList
             }),
             container
         );
         container.firstChild.style.marginRight = "0px";
     }
-    
+
     Spicetify.Player.addEventListener("songchange", () => {
         const container = document.querySelector(".likeControl-wrapper");
         if (container) {
